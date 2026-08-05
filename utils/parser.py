@@ -8,7 +8,7 @@ from lib.version import __version__
 
 def getArguments(): 
     parser = ArgumentParser(
-            prog='InstagramPrivSniffer ',
+            prog='InstagramPrivSniffer',
             description="What my tool does: ",
             epilog='Thanks for using my tool!'
         )
@@ -37,6 +37,6 @@ def getArguments():
         "--version", 
         help="version of this tool", 
         action="version", 
-        version=f"InstagramPrviSniffer {__version__}"
+        version=f"InstagramPrivSniffer {__version__}"
     )
     return parser.parse_args()
