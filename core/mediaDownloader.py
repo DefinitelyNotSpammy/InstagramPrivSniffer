@@ -6,6 +6,7 @@ See the file 'LICENSE' for copying permission
 from datetime import datetime
 import os
 import re
+import tempfile
 from urllib.parse import urlparse
 
 from curl_cffi import requests
@@ -76,7 +77,10 @@ def print_request_error(response, debug, fallback):
         try:
             details = response.json()
         except Exception:
-            details = response.text
+            try:
+                details = response.text
+            except Exception:
+                details = "Response details unavailable"
         colorPrint(
             CYAN, f"[{get_time()}] \t",
             RED, f"[{response.status_code}] \t\t\b",
@@ -118,6 +122,7 @@ def fetch_media(url, debug=False):
             params={"username": username},
             headers={"X-IG-App-ID": "936619743392459"},
             timeout=REQUEST_TIMEOUT_SECONDS,
+            allow_redirects="safe",
         )
     except Exception as error:
         colorPrint(
@@ -190,6 +195,8 @@ def download_media(post_url, debug=False):
             media_url,
             headers={"X-IG-App-ID": "936619743392459"},
             timeout=REQUEST_TIMEOUT_SECONDS,
+            allow_redirects="safe",
+            stream=True,
         )
     except Exception as error:
         colorPrint(
@@ -199,18 +206,31 @@ def download_media(post_url, debug=False):
         )
         return False
 
-    if response.status_code != 200:
-        print_request_error(response, debug, "Failed to download media")
-        return False
-
     project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     download_path = os.path.join(project_path, "InstaDownloads")
     file_path = os.path.join(download_path, file_name)
+    temporary_path = None
 
     try:
+        if response.status_code != 200:
+            print_request_error(response, debug, "Failed to download media")
+            return False
+
         os.makedirs(download_path, exist_ok=True)
-        with open(file_path, "wb") as file:
-            file.write(response.content)
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=download_path,
+            prefix=f".{file_name}.",
+            suffix=".part",
+            delete=False,
+        ) as file:
+            temporary_path = file.name
+            for chunk in response.iter_content():
+                if chunk:
+                    file.write(chunk)
+
+        os.replace(temporary_path, file_path)
+        temporary_path = None
     except OSError as error:
         colorPrint(
             CYAN, f"[{get_time()}] \t",
@@ -218,6 +238,25 @@ def download_media(post_url, debug=False):
             RED, str(error) if debug else "Failed to save media"
         )
         return False
+    except Exception as error:
+        colorPrint(
+            CYAN, f"[{get_time()}] \t",
+            RED, "[ERROR] \t",
+            RED, str(error) if debug else "Failed to download media"
+        )
+        return False
+    finally:
+        if temporary_path is not None:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass
+        try:
+            response.close()
+        except Exception:
+            pass
 
     colorPrint(
         CYAN, f"[{get_time()}] \t",
