@@ -70,7 +70,7 @@
 
    - **Or download the [ZIP archive](https://github.com/obitouka/InstagramPrivSniffer/archive/refs/heads/main.zip) and extract it.**
    
-2. **Create a virtual environment**
+2. **Use Python 3.10 or newer and create a virtual environment**
 
    **Linux / macOS**
    ```bash
