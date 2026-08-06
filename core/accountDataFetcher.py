@@ -8,6 +8,10 @@ from utils.colorPrinter import *
 from datetime import datetime
 
 
+INSTAGRAM_PROFILE_URL = "https://www.instagram.com/api/v1/users/web_profile_info/"
+REQUEST_TIMEOUT_SECONDS = 30
+
+
 def get_time():
     return datetime.now().strftime("%H:%M:%S")
 
@@ -19,27 +23,33 @@ def fetch_data(username, debug=False):
     )
     
     try:
-        url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
         headers = {
             "X-IG-App-ID": "936619743392459",
         }
-        response = requests.get(url, headers=headers)
+        response = requests.get(
+            INSTAGRAM_PROFILE_URL,
+            params={"username": username},
+            headers=headers,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
 
         if response.status_code != 200:
             error_handler(response, debug)
-            return 
+            return False
 
         user_data = response.json()["data"]["user"]
         
         account_type(user_data)
         get_posts(user_data)
-        
+        return True
+
     except Exception as e:
         colorPrint(
             CYAN, f"[{get_time()}] \t",
             RED, "[ERROR] \t\t\b",
-            RED, str(e)
+            RED, str(e) if debug else "Failed to fetch profile data"
         )
+        return False
 
 
 def error_handler(response, debug=False):
