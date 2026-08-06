@@ -31,6 +31,7 @@ def fetch_data(username, debug=False):
             params={"username": username},
             headers=headers,
             timeout=REQUEST_TIMEOUT_SECONDS,
+            allow_redirects="safe",
         )
 
         if response.status_code != 200:
